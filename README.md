@@ -30,27 +30,28 @@ uv run server.py
 
 - `analyze_config` — Fetch and analyze device configuration (interfaces, routing, etc.)
 
+## Run the server
+
+```bash
+uv run server.py
+```
+
+
 ## Connect to OpenCode
 
 Add to your `opencode.json` (project root or `~/.config/opencode/opencode.json`):
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "clixon": {
-      "type": "local",
-      "command": ["uv", "run", "server.py"],
-      "enabled": true
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+      "clixon": {
+        "type": "remote",
+        "url": "http://localhost:8000/mcp",
+        "enabled": true
+      }
     }
-  }
 }
-```
-
-Adjust the command path if the server isn't in OpenCode's working directory:
-
-```json
-"command": ["uv", "run", "/absolute/path/to/mcp/server.py"]
 ```
 
 ## Example Usage in OpenCode
