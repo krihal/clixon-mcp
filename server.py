@@ -200,9 +200,11 @@ def list_tools() -> str:
     return json.dumps(
         {
             "fetch_config": "Fetch network device configuration via RESTCONF.",
+            "write_config": "Write the cached configuration back to the device via RESTCONF.",
             "get_config": "Return the currently cached RESTCONF configuration.",
             "get_config_path": "Extract a specific section from the cached configuration by dot-separated path.",
             "get_config_url": "Return the RESTCONF URL used to fetch the configuration.",
+            "set_config_url": "Set the RESTCONF URL to be used for fetching configuration.",
             "clear_config_cache": "Clear the cached configuration.",
         },
         indent=2,
