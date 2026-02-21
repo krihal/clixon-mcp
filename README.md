@@ -11,16 +11,31 @@ uv sync
 ## Run
 
 ```bash
-uv run server.py
+uv run server.py --restconf-url https://localhost:8443/restconf/data
 ```
+
+### CLI Arguments
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--restconf-url` | `https://localhost:8443/restconf/data` | RESTCONF URL to fetch config from |
+| `--restconf-username` | _(empty)_ | HTTP basic auth username for RESTCONF (optional) |
+| `--restconf-password` | _(empty)_ | HTTP basic auth password for RESTCONF (optional) |
+| `--restconf-verify-ssl` | `False` | Verify SSL certificates when fetching RESTCONF config |
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
 | `fetch_config` | Fetch device configuration via RESTCONF (supports basic auth and TLS) |
+| `write_config` | Write cached configuration back to the device via RESTCONF |
 | `get_config` | Return the currently cached configuration |
 | `get_config_path` | Extract a specific section by dot-separated path (e.g. `ietf-interfaces:interfaces.interface`) |
+| `get_config_url` | Return the RESTCONF URL used to fetch the configuration |
+| `set_config_url` | Set the RESTCONF URL for fetching configuration |
+| `clear_config_cache` | Clear the cached configuration |
+| `list_tools` | List available tools |
+| `help` | Return a help message describing the server and available tools |
 
 ## Resources
 
@@ -29,12 +44,6 @@ uv run server.py
 ## Prompts
 
 - `analyze_config` — Fetch and analyze device configuration (interfaces, routing, etc.)
-
-## Run the server
-
-```bash
-uv run server.py
-```
 
 
 ## Connect to OpenCode
