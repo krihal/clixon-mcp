@@ -58,7 +58,7 @@ def fetch_config() -> str:
             else None
         )
         response = httpx.get(
-            args.restconf_url,
+            args.restconf_url + "/data",
             headers=headers,
             auth=auth,
             verify=args.restconf_verify_ssl,
