@@ -5,6 +5,7 @@ import sys
 
 from argparse import ArgumentParser
 from mcp.server.fastmcp import FastMCP
+from time import sleep
 
 mcp = FastMCP("Clixon MCP Server")
 logger = logging.getLogger(__name__)
@@ -171,6 +172,196 @@ def set_config_url(url: str) -> str:
     logger.info(f"RESTCONF URL set to: {_config_url}")
 
     return f"RESTCONF URL set to: {_config_url}"
+
+
+@mcp.tool()
+def get_schema():
+    """
+    Get the YANG schema from the RESTCONF API.
+
+    After this tool is called, use poll_transaction with the returned transaction ID to
+    fetch the result once the transaction is complete.
+
+    Use the schemas to learn which RPC calls are supported by the device and
+    how to structure the RPC input for get_rpc.
+    """
+
+    return get_rpc("", "get-schema", {"schema-name": "all"})
+
+
+@mcp.tool()
+def get_rpc(device_name: str, rpc_name: str, rpc_args: dict = None):
+    """
+    Run get_config as a first step.
+
+    Get device information using an RPC call to the RESTCONF API.
+
+    After this tool is called, use poll_transaction with the returned transaction ID to
+    fetch the result once the transaction is complete.
+
+    This function will return the tid (transaction ID) of the initiated RPC
+    call, which can be used to poll for the result.
+
+    Parameters:
+    - device_name: The name of the device to run the RPC on.
+    - rpc_name: The name of the RPC to run, e.g. "get-bgp-neighbor-information".
+    - rpc_args: A dictionary of arguments to pass to the RPC, structured according to the device's YANG model for the RPC input.
+    """
+
+    try:
+        auth = (
+            (args.restconf_username, args.restconf_password)
+            if args.restconf_username
+            else None
+        )
+
+        rpc_json = {
+                "clixon-controller:input": {
+                    "device": device_name,
+                    "config": {
+                        rpc_name: rpc_args
+                    },
+                }
+            }
+
+        logger.info(device_name)
+        logger.info(args.restconf_url)
+        logger.info(rpc_json)
+
+        rpc_response = httpx.post(
+            f"{args.restconf_url}/operations/clixon-controller:device-rpc",
+            headers={"Content-Type": "application/yang-data+json"},
+            json=rpc_json,
+            auth=auth,
+            verify=args.restconf_verify_ssl,
+            timeout=30,
+        )
+
+        rpc_response.raise_for_status()
+
+        tid = rpc_response.json().get("clixon-controller:output", {}).get("tid")
+
+        if not tid:
+            logger.error("RPC response did not contain transaction ID")
+            return "Error: RPC response did not contain transaction ID"
+
+        logger.info(f"RPC initiated successfully, transaction ID: {tid}")
+
+        return tid
+
+    except Exception as e:
+        logger.error(f"Error during RPC call to fetch BGP neighbor information: {e}")
+        return f"Error during RPC call: {e}"
+
+
+@mcp.tool()
+def get_state(device_name: str):
+    """
+    Run get_config as a first step.
+
+    Get device state information using an RPC call to the RESTCONF API.
+
+    After this tool is called, use poll_transaction with the returned
+    transaction ID to fetch the result once the transaction is complete.
+
+    This function will return the tid (transaction ID) of the initiated RPC
+    call, which can be used to poll for the result.
+    """
+
+    try:
+        auth = (
+            (args.restconf_username, args.restconf_password)
+            if args.restconf_username
+            else None
+        )
+
+        rpc_json = {
+                "clixon-controller:input": {
+                    "device": device_name,
+                    "config": {
+                        "get": {}
+                    }
+                },
+            }
+
+        logger.info(device_name)
+        logger.info(args.restconf_url)
+        logger.info(rpc_json)
+
+        rpc_response = httpx.post(
+            f"{args.restconf_url}/operations/clixon-controller:device-rpc",
+            headers={"Content-Type": "application/yang-data+json"},
+            json=rpc_json,
+            auth=auth,
+            verify=args.restconf_verify_ssl,
+            timeout=30,
+        )
+
+        rpc_response.raise_for_status()
+
+        tid = rpc_response.json().get("clixon-controller:output", {}).get("tid")
+
+        if not tid:
+            logger.error("RPC response did not contain transaction ID")
+            return "Error: RPC response did not contain transaction ID"
+
+        logger.info(f"RPC initiated successfully, transaction ID: {tid}")
+
+        return tid
+
+    except Exception as e:
+        logger.error(f"Error during RPC call to fetch BGP neighbor information: {e}")
+        return f"Error during RPC call: {e}"
+
+
+@mcp.tool()
+def poll_transaction(tid: int):
+    """
+    Poll for the transaction to finish and fetch the result.
+
+    Example where 5 is the transaction ID returned from the RPC call:
+        GET /restconf/data/clixon-controller:transactions/transaction=5 HTTP/1.1
+
+    If this function fails, don't try again but let the user know that the
+    transaction result couldn't be fetched. This is to avoid infinite loops in
+    case of errors.
+    """
+
+    auth = (
+        (args.restconf_username, args.restconf_password)
+        if args.restconf_username
+        else None
+    )
+
+    try:
+        transaction_response = httpx.get(
+            f"{args.restconf_url}/data/clixon-controller:transactions/transaction={tid}",
+            headers={"Accept": "application/yang-data+json"},
+            auth=auth,
+            verify=args.restconf_verify_ssl,
+            timeout=30,
+        )
+
+        transaction_response.raise_for_status()
+
+        if "clixon-controller:transaction" not in transaction_response.json():
+            return f"Error: Unexpected response format, missing 'clixon-controller:transaction' key: {transaction_response.text}"
+
+        if "result" not in transaction_response.json()["clixon-controller:transaction"][0]:
+            return f"Error: Unexpected response format, missing 'result' key in transaction: {transaction_response.text}"
+
+        if "SUCCESS" in transaction_response.json()["clixon-controller:transaction"][0]["result"]:
+            return json.dumps(transaction_response.json(), indent=2)
+
+    except Exception as e:
+        logger.error(f"Error polling transaction {tid}: {e}")
+        return f"Error polling transaction: {e}"
+
+    logger.info(
+        f"Transaction completed successfully, fetching result for transaction ID: {tid}"
+    )
+
+    return json.dumps(transaction_response.json(), indent=2)
 
 
 @mcp.tool()
