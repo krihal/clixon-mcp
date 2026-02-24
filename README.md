@@ -18,7 +18,7 @@ uv run server.py --restconf-url https://localhost:8443/restconf/
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `--restconf-url` | `https://localhost:8443/restconf/data` | RESTCONF URL to fetch config from |
+| `--restconf-url` | `https://localhost:8443/restconf/` | RESTCONF URL to fetch config from |
 | `--restconf-username` | _(empty)_ | HTTP basic auth username for RESTCONF (optional) |
 | `--restconf-password` | _(empty)_ | HTTP basic auth password for RESTCONF (optional) |
 | `--restconf-verify-ssl` | `False` | Verify SSL certificates when fetching RESTCONF config |
@@ -67,7 +67,7 @@ Add to your `opencode.json` (project root or `~/.config/opencode/opencode.json`)
 
 Once connected, ask questions like:
 
-- `Fetch the config from https://mydevice:8443/restconf/data with user admin and password admin`
+- `Fetch the config and summarize it.`
 - `What interfaces are configured?`
 - `Show me the routing configuration`
 - `Are there any interfaces that are down?`
