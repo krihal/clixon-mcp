@@ -48,7 +48,7 @@ uv run server.py --restconf-url https://localhost:8443/restconf/
 
 ## Connect to OpenCode
 
-Add to your `opencode.json` (`~/.config/opencode.json`):
+Add to your `opencode.json` (`~/.opencode/opencode.json`):
 
 ```json
 {
