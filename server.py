@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 import json
 import logging
@@ -46,6 +47,25 @@ def _restconf_post(path, json_body):
     )
 
     return httpx.post(
+        f"{_args.restconf_url}{path}",
+        headers={"Content-Type": "application/yang-data+json"},
+        json=json_body,
+        auth=_get_auth(),
+        verify=_args.restconf_verify_ssl,
+        timeout=30,
+    )
+
+
+def _restconf_patch(path, json_body):
+    """
+    Make an authenticated RESTCONF PATCH request.
+    """
+
+    logger.info(
+        f"Making RESTCONF PATCH request to path: {path} with body: {json.dumps(json_body)}"
+    )
+
+    return httpx.patch(
         f"{_args.restconf_url}{path}",
         headers={"Content-Type": "application/yang-data+json"},
         json=json_body,
@@ -132,28 +152,26 @@ def fetch_config() -> str:
 
 
 @mcp.tool()
-def write_config():
+def write_config(config: dict) -> str:
     """
-    Write network device configuration back to the device via RESTCONF.
-
-    The RESTCONF URL from the last fetch_config call will be used. Make sure
-    to set the URL with set_config_url if you want to write to a different
-    device or endpoint.
-
-    Config should be written using HTTP PUT to the same URL used to fetch,
-    with the config as JSON body. This is a simple implementation and may need
-    to be adjusted based on the specific RESTCONF API of the device, including
-    handling of authentication, headers, and response parsing.
+    Write configuration to the device using RESTCONF. The config should be
+    written using a PATCH request to the appropriate RESTCONF endpoint,
+    structured according to the device's YANG models.
     """
 
-    global _config_cache, _config_url
+    if not _config_url:
+        return "No RESTCONF URL set. Use fetch_config to load from a device first."
 
-    if not _config_cache or not _config_url:
-        return "No configuration cached. Use fetch_config to load from a device."
+    try:
+        response = _restconf_patch("/data", config)
+        response.raise_for_status()
 
-    logger.info(f"Attempting to write configuration back to {_config_url}")
+        logger.info("Configuration written successfully")
 
-    return _config_cache, _config_url
+        return "Configuration written successfully."
+    except Exception as e:
+        logger.error(f"Error writing config to {_config_url}: {e}")
+        return f"Error writing config: {e}"
 
 
 @mcp.tool()
@@ -475,4 +493,7 @@ if __name__ == "__main__":
 
     _config_url = _args.restconf_url
 
-    mcp.run(transport="streamable-http")
+    try:
+        mcp.run(transport="streamable-http")
+    except KeyboardInterrupt:
+        print("Keyboard interrupt received, shutting down server...")
