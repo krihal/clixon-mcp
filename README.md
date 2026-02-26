@@ -2,6 +2,8 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io/) server for fetching and querying network device configuration via RESTCONF. Connects to Clixon-based (or any RESTCONF-capable) devices and makes the configuration available to AI coding agents like OpenCode.
 
+This project uses UV (https://github.com/astral-sh/uv) for package control.
+
 ## Setup
 
 ```bash
